@@ -1,0 +1,32 @@
+{
+  "name": {{ json .Plugin.Name }},
+  "version": {{ json .Plugin.Version }},
+{{- with .Plugin.Description }}
+  "description": {{ json . }},
+{{- end }}
+{{- with .Plugin.Author.Name }}
+  "author": {
+    "name": {{ json . }}
+{{- with $.Plugin.Author.Email }},
+    "email": {{ json . }}
+{{- end }}
+{{- with $.Plugin.Author.URL }},
+    "url": {{ json . }}
+{{- end }}
+  },
+{{- end }}
+{{- with .Plugin.Homepage }}
+  "homepage": {{ json . }},
+{{- end }}
+{{- with .Plugin.Repository }}
+  "repository": {{ json . }},
+{{- end }}
+{{- with .Plugin.License }}
+  "license": {{ json . }},
+{{- end }}
+  "keywords": ["pi-package"{{ range .Plugin.Keywords }}{{ if ne . "pi-package" }}, {{ json . }}{{ end }}{{ end }}],
+  "files": [{{ json .SkillsDir }}, "README.md"],
+  "pi": {
+    "skills": [{{ json (printf "./%s" .SkillsDir) }}]
+  }
+}

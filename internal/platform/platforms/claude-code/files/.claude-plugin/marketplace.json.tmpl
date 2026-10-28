@@ -1,0 +1,22 @@
+{
+  "name": {{ json .Plugin.Name }},
+{{- with .Plugin.Description }}
+  "description": {{ json . }},
+{{- end }}
+  "owner": {
+    "name": {{ json (or .Plugin.Author.Name .Plugin.Name) }}
+{{- with .Plugin.Author.Email }},
+    "email": {{ json . }}
+{{- end }}
+  },
+  "plugins": [
+    {
+      "name": {{ json .Plugin.Name }},
+{{- with .Plugin.Description }}
+      "description": {{ json . }},
+{{- end }}
+      "version": {{ json .Plugin.Version }},
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+name: pi
+description: Pi package with an explicit skills manifest
+skillsDir: skills
