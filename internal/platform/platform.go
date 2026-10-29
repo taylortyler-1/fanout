@@ -24,6 +24,8 @@ const (
 	filesDir       = "files"
 )
 
+var nameRE = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
 // Platform describes how to package skills for one agent platform.
 type Platform struct {
 	Name        string `yaml:"name"`
@@ -48,7 +50,7 @@ func Load(fsys fs.FS) (*Platform, error) {
 	if err := dec.Decode(&p); err != nil {
 		return nil, fmt.Errorf("%s: %w", descriptorFile, err)
 	}
-	if !regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`).MatchString(p.Name) {
+	if !nameRE.MatchString(p.Name) {
 		return nil, fmt.Errorf("%s: name must be kebab-case (lowercase letters, digits, hyphens)", descriptorFile)
 	}
 	if p.SkillsDir == "" {
