@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -158,39 +157,6 @@ func printTryCommands(cmd *cobra.Command, platforms []*platform.Platform, outDir
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "\nTry it for one session:\n%s\n", strings.Join(lines, "\n"))
 	return err
-}
-
-// loadSkills discovers and validates every skill in repo, reporting all
-// problems before failing.
-func loadSkills(cmd *cobra.Command, repo string, skip ...string) ([]*skill.Skill, error) {
-	skills, perrs, err := skill.Discover(repo, skip...)
-	if err != nil {
-		return nil, err
-	}
-	stderr := cmd.ErrOrStderr()
-	failed := len(perrs)
-	for _, pe := range perrs {
-		_, _ = fmt.Fprintf(stderr, "✗ %s\n    %v\n", relPath(pe.Dir), pe.Err)
-	}
-	seen := map[string]string{}
-	for _, s := range skills {
-		err := s.Validate()
-		if prev, ok := seen[s.Name]; ok && s.Name != "" {
-			err = errors.Join(err, fmt.Errorf("duplicate skill name %q (also in %s)", s.Name, relPath(prev)))
-		}
-		seen[s.Name] = s.Dir
-		if err != nil {
-			failed++
-			_, _ = fmt.Fprintf(stderr, "✗ %s\n    %s\n", relPath(s.Dir), strings.ReplaceAll(err.Error(), "\n", "\n    "))
-		}
-	}
-	if failed > 0 {
-		return nil, fmt.Errorf("%d skill(s) failed validation", failed)
-	}
-	if len(skills) == 0 {
-		return nil, fmt.Errorf("no skills found under %s (looking for %s files)\nRun \"fanout init\" to create a starter skills repo", relPath(repo), skill.FileName)
-	}
-	return skills, nil
 }
 
 func selectSkills(all []*skill.Skill, names []string) ([]*skill.Skill, error) {
@@ -353,21 +319,4 @@ func orDefault(a, b []string) []string {
 		return a
 	}
 	return b
-}
-
-var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
-
-func kebab(s string) string {
-	return strings.Trim(nonAlnum.ReplaceAllString(strings.ToLower(s), "-"), "-")
-}
-
-func relPath(p string) string {
-	wd, err := os.Getwd()
-	if err != nil {
-		return p
-	}
-	if rel, err := filepath.Rel(wd, p); err == nil && !strings.HasPrefix(rel, "..") {
-		return rel
-	}
-	return p
 }

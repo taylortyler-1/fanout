@@ -121,7 +121,3 @@ func authorName() string {
 	}
 	return "Your Name"
 }
-
-func shellQuote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
-}
