@@ -1,6 +1,10 @@
 version: 2
 project_name: fanout
 
+before:
+  hooks:
+    - sh scripts/completions.sh
+
 builds:
   - main: ./cmd/fanout
     binary: fanout
@@ -24,9 +28,35 @@ archives:
     files:
       - README.md
       - LICENSE*
+      - completions/*
 
 checksum:
   name_template: checksums.txt
 
 changelog:
   sort: asc
+
+homebrew_casks:
+  - name: fanout
+    description: Build Claude Code plugins and Pi packages from Agent Skills
+    homepage: https://github.com/taylortyler-1/fanout
+    license: MIT
+    repository:
+      owner: taylortyler-1
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: Taylor Tyler
+      email: taylortyler-1@pm.me
+    completions:
+      bash: completions/fanout.bash
+      zsh: completions/fanout.zsh
+      fish: completions/fanout.fish
+    # The binaries are not notarized, so clear the quarantine flag that would
+    # otherwise make Gatekeeper block the first run.
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/fanout"]
+          end

@@ -1,3 +1,4 @@
 bin/
 dist/
 .ruff_cache/
+completions/

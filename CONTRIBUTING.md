@@ -61,5 +61,9 @@ git push origin v0.1.0
 
 Use the next appropriate semantic version for subsequent releases.
 `.github/workflows/release.yml` reruns CI before GoReleaser publishes the
-GitHub release and its assets. Creating the GitHub repository alone does not
+GitHub release and its assets, then commits the updated cask to
+[taylortyler-1/homebrew-tap](https://github.com/taylortyler-1/homebrew-tap).
+That push needs a `HOMEBREW_TAP_TOKEN` repository secret: a fine-grained token
+with Contents read/write access to the tap repository only. Snapshot builds
+write the cask to `dist/homebrew/Casks/fanout.rb` without publishing it. Creating the GitHub repository alone does not
 publish binaries; the release workflow runs when a version tag is pushed.
