@@ -11,6 +11,30 @@ import (
 	"github.com/taylortyler-1/fanout/internal/config"
 )
 
+func TestDefaultPluginVersion(t *testing.T) {
+	repo := filepath.Join(t.TempDir(), "skills")
+	if _, err := execute("init", repo); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(repo, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Version != defaultVersion {
+		t.Fatalf("init version = %q, want %q", cfg.Version, defaultVersion)
+	}
+	if err := os.Remove(filepath.Join(repo, config.FileName)); err != nil {
+		t.Fatal(err)
+	}
+	out, err := execute("build", repo, "--out", t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "skills@"+defaultVersion+" with") {
+		t.Fatalf("build did not use default plugin version: %s", out)
+	}
+}
+
 func TestInitQuotesGitAuthor(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")

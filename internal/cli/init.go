@@ -19,7 +19,7 @@ const exampleSkill = "explain-code"
 const configTemplate = `# fanout.yaml: metadata for the plugins fanout builds.
 # See https://github.com/taylortyler-1/fanout#configure-your-build
 name: %s
-version: 0.1.0
+version: ` + defaultVersion + `
 description: %s
 author:
   name: %q

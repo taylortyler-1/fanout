@@ -16,8 +16,6 @@ import (
 	"github.com/taylortyler-1/fanout/internal/skill"
 )
 
-const defaultVersion = "0.1.0"
-
 type buildOptions struct {
 	configPath   string
 	platforms    []string

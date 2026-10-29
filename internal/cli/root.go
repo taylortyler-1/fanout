@@ -5,6 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// defaultVersion is the initial version of generated plugins, not fanout itself.
+const defaultVersion = "0.1.0"
+
 // version is set at build time with -ldflags "-X .../internal/cli.version=...".
 var version = "dev"
 
