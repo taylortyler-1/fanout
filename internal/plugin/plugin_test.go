@@ -17,12 +17,9 @@ import (
 func testSkill(t *testing.T) *skill.Skill {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "my-skill")
-	if err := os.MkdirAll(filepath.Join(dir, "scripts"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	os.WriteFile(filepath.Join(dir, skill.FileName), []byte("---\nname: my-skill\ndescription: Says \"hi\".\n---\n"), 0o644)
-	os.WriteFile(filepath.Join(dir, "scripts", "run.sh"), []byte("#!/bin/sh\n"), 0o755)
-	os.WriteFile(filepath.Join(dir, ".DS_Store"), nil, 0o644)
+	writeTestFile(t, filepath.Join(dir, skill.FileName), "---\nname: my-skill\ndescription: Says \"hi\".\n---\n", 0o644)
+	writeTestFile(t, filepath.Join(dir, "scripts", "run.sh"), "#!/bin/sh\n", 0o755)
+	writeTestFile(t, filepath.Join(dir, ".DS_Store"), "", 0o644)
 	s, err := skill.Parse(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -196,14 +193,12 @@ func TestPiManifest(t *testing.T) {
 
 func TestCopyDirFollowsSymlinks(t *testing.T) {
 	shared := t.TempDir()
-	os.MkdirAll(filepath.Join(shared, "refs"), 0o755)
-	os.WriteFile(filepath.Join(shared, "refs", "guide.md"), []byte("guide"), 0o644)
-	os.WriteFile(filepath.Join(shared, "common.sh"), []byte("#!/bin/sh\n"), 0o755)
+	writeTestFile(t, filepath.Join(shared, "refs", "guide.md"), "guide", 0o644)
+	writeTestFile(t, filepath.Join(shared, "common.sh"), "#!/bin/sh\n", 0o755)
 
 	src := filepath.Join(t.TempDir(), "s")
-	os.MkdirAll(src, 0o755)
-	os.Symlink(filepath.Join(shared, "refs"), filepath.Join(src, "references"))
-	os.Symlink(filepath.Join(shared, "common.sh"), filepath.Join(src, "common.sh"))
+	symlink(t, filepath.Join(shared, "refs"), filepath.Join(src, "references"))
+	symlink(t, filepath.Join(shared, "common.sh"), filepath.Join(src, "common.sh"))
 
 	dst := filepath.Join(t.TempDir(), "out")
 	if err := copyDir(src, dst); err != nil {
@@ -218,11 +213,15 @@ func TestCopyDirFollowsSymlinks(t *testing.T) {
 			t.Errorf("%s was copied as a symlink", rel)
 		}
 	}
-	if info, _ := os.Stat(filepath.Join(dst, "common.sh")); info.Mode().Perm()&0o100 == 0 {
+	info, err := os.Stat(filepath.Join(dst, "common.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm()&0o100 == 0 {
 		t.Error("linked script lost its executable bit")
 	}
 
-	os.Symlink(filepath.Join(shared, "missing"), filepath.Join(src, "broken"))
+	symlink(t, filepath.Join(shared, "missing"), filepath.Join(src, "broken"))
 	if err := copyDir(src, filepath.Join(t.TempDir(), "out")); err == nil {
 		t.Error("expected error for broken symlink")
 	}

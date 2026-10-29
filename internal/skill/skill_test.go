@@ -19,6 +19,13 @@ func writeSkill(t *testing.T, root, dir, content string) string {
 	return d
 }
 
+func symlink(t *testing.T, target, link string) {
+	t.Helper()
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestParse(t *testing.T) {
 	root := t.TempDir()
 	d := writeSkill(t, root, "pdf", "\uFEFF---\r\nname: pdf\r\ndescription: Work with PDFs.\r\nmetadata:\r\n  author: me\r\n---\r\n# Body\r\n")
@@ -111,10 +118,10 @@ func TestDiscoverSymlinks(t *testing.T) {
 	outside := t.TempDir()
 	writeSkill(t, outside, "linked", "---\nname: linked\ndescription: d\n---\n")
 	writeSkill(t, root, "skills/real", "---\nname: real\ndescription: d\n---\n")
-	os.Symlink(filepath.Join(outside, "linked"), filepath.Join(root, "skills", "linked"))
-	os.Symlink(filepath.Join(root, "skills", "real"), filepath.Join(root, "skills", "zz-alias"))
-	os.Symlink(filepath.Join(root, "nope"), filepath.Join(root, "skills", "dangling"))
-	os.Symlink(root, filepath.Join(root, "skills", "loop"))
+	symlink(t, filepath.Join(outside, "linked"), filepath.Join(root, "skills", "linked"))
+	symlink(t, filepath.Join(root, "skills", "real"), filepath.Join(root, "skills", "zz-alias"))
+	symlink(t, filepath.Join(root, "nope"), filepath.Join(root, "skills", "dangling"))
+	symlink(t, root, filepath.Join(root, "skills", "loop"))
 
 	skills, perrs, err := Discover(root)
 	if err != nil {
