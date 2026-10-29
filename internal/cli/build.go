@@ -102,19 +102,20 @@ func runBuild(cmd *cobra.Command, repo string, o buildOptions) error {
 	if err != nil {
 		return err
 	}
-	skills, err := loadSkills(cmd, repo, append(cfg.ExcludeDirs(repo), outDir)...)
+	allSkills, err := loadSkills(cmd, repo, append(cfg.ExcludeDirs(repo), outDir)...)
 	if err != nil {
 		return err
 	}
-	skills, err = selectSkills(skills, orDefault(o.skills, cfg.Skills))
+	skills, err := selectSkills(allSkills, orDefault(o.skills, cfg.Skills))
 	if err != nil {
 		return err
 	}
 
-	// Check every target before writing or deleting anything.
+	// Check every target against all discovered skills, including unselected
+	// sources, before writing or deleting anything.
 	for _, p := range platforms {
 		dst := filepath.Join(outDir, p.Name)
-		if err := checkOutput(dst, repo, skills, o.force); err != nil {
+		if err := checkOutput(dst, repo, allSkills, o.force); err != nil {
 			return err
 		}
 	}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,6 +90,51 @@ func TestCheckOutputProtectsSources(t *testing.T) {
 	}
 	if b, err := os.ReadFile(filepath.Join(skillDir, "SKILL.md")); err != nil || string(b) != "sentinel" {
 		t.Fatalf("source modified: %q, %v", b, err)
+	}
+}
+
+func TestBuildProtectsUnselectedSkills(t *testing.T) {
+	for _, fromConfig := range []bool{false, true} {
+		for _, alias := range []bool{false, true} {
+			name := fmt.Sprintf("config=%t/alias=%t", fromConfig, alias)
+			t.Run(name, func(t *testing.T) {
+				repo := t.TempDir()
+				const source = "---\nname: b\ndescription: B\n---\nKeep me.\n"
+				put(t, filepath.Join(repo, "a", "SKILL.md"), "---\nname: a\ndescription: A\n---\n")
+				put(t, filepath.Join(repo, "b", "SKILL.md"), source)
+				custom := t.TempDir()
+				put(t, filepath.Join(custom, "platform.yaml"), "name: b\n")
+				put(t, filepath.Join(custom, "files", "README.md"), "scaffold")
+				out := repo
+				if alias {
+					out = filepath.Join(t.TempDir(), "alias")
+					if err := os.Symlink(repo, out); err != nil {
+						t.Fatal(err)
+					}
+				}
+				// A safe target comes first: preflight must reject the entire build
+				// before publishing even that target.
+				args := []string{"build", repo, "-p", "pi", "--platform-dir", custom, "--out", out, "--force"}
+				if fromConfig {
+					put(t, filepath.Join(repo, "fanout.yaml"), "skills: [a]\n")
+				} else {
+					args = append(args, "--skill", "a")
+				}
+				if _, err := execute(args...); err == nil || !strings.Contains(err.Error(), "overlaps skill b") {
+					t.Fatalf("expected source-overlap refusal, got %v", err)
+				}
+				if b, err := os.ReadFile(filepath.Join(repo, "b", "SKILL.md")); err != nil || string(b) != source {
+					t.Fatalf("unselected source modified: %q, %v", b, err)
+				}
+				if _, err := os.Stat(filepath.Join(repo, "pi")); !os.IsNotExist(err) {
+					t.Fatalf("safe target published before refusal: %v", err)
+				}
+				stages, err := filepath.Glob(filepath.Join(repo, ".fanout-*"))
+				if err != nil || len(stages) != 0 {
+					t.Fatalf("staging directories left behind: %v, %v", stages, err)
+				}
+			})
+		}
 	}
 }
 
