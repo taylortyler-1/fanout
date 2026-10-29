@@ -131,7 +131,33 @@ func runBuild(cmd *cobra.Command, repo string, o buildOptions) error {
 			return err
 		}
 	}
-	return nil
+	return printTryCommands(cmd, platforms, outDir)
+}
+
+// tryCommands load a builtin platform's output for one session.
+var tryCommands = map[string]string{
+	"claude-code": "claude --plugin-dir %s",
+	"pi":          "pi -e %s",
+}
+
+func printTryCommands(cmd *cobra.Command, platforms []*platform.Platform, outDir string) error {
+	var lines []string
+	for _, p := range platforms {
+		format, ok := tryCommands[p.Name]
+		if !ok {
+			continue
+		}
+		dst := relPath(filepath.Join(outDir, p.Name))
+		if !filepath.IsAbs(dst) {
+			dst = "." + string(filepath.Separator) + dst
+		}
+		lines = append(lines, "  "+fmt.Sprintf(format, shellQuote(dst)))
+	}
+	if len(lines) == 0 {
+		return nil
+	}
+	_, err := fmt.Fprintf(cmd.OutOrStdout(), "\nTry it for one session:\n%s\n", strings.Join(lines, "\n"))
+	return err
 }
 
 // loadSkills discovers and validates every skill in repo, reporting all
@@ -162,7 +188,7 @@ func loadSkills(cmd *cobra.Command, repo string, skip ...string) ([]*skill.Skill
 		return nil, fmt.Errorf("%d skill(s) failed validation", failed)
 	}
 	if len(skills) == 0 {
-		return nil, fmt.Errorf("no skills found under %s (looking for %s files)", relPath(repo), skill.FileName)
+		return nil, fmt.Errorf("no skills found under %s (looking for %s files)\nRun \"fanout init\" to create a starter skills repo", relPath(repo), skill.FileName)
 	}
 	return skills, nil
 }

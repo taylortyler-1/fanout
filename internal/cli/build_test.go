@@ -112,3 +112,41 @@ func TestFailedBuildPreservesOutput(t *testing.T) {
 		t.Fatalf("staging directories left behind: %v, %v", stages, err)
 	}
 }
+
+func TestInitScaffoldsBuildableRepo(t *testing.T) {
+	repo := filepath.Join(t.TempDir(), "My Skills")
+	if out, err := execute("init", repo); err != nil || !strings.Contains(out, "fanout build") {
+		t.Fatalf("init: %q, %v", out, err)
+	}
+	cfg, err := os.ReadFile(filepath.Join(repo, "fanout.yaml"))
+	if err != nil || !strings.Contains(string(cfg), "name: my-skills\n") {
+		t.Fatalf("config: %q, %v", cfg, err)
+	}
+	out := filepath.Join(t.TempDir(), "plugins")
+	got, err := execute("build", repo, "-o", out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"claude --plugin-dir", "pi -e"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("build output missing %q:\n%s", want, got)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(out, "pi", "skills", "explain-code", "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+
+	put(t, filepath.Join(repo, "explain-code", "SKILL.md"), "edited")
+	if err := os.Remove(filepath.Join(repo, "fanout.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execute("init", repo); err == nil {
+		t.Fatal("expected init to refuse existing skill")
+	}
+	if b, _ := os.ReadFile(filepath.Join(repo, "explain-code", "SKILL.md")); string(b) != "edited" {
+		t.Fatalf("init overwrote skill: %q", b)
+	}
+	if _, err := os.Stat(filepath.Join(repo, "fanout.yaml")); !os.IsNotExist(err) {
+		t.Fatal("init wrote files after refusing")
+	}
+}

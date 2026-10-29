@@ -21,6 +21,6 @@ and can be overridden with flags.`,
 		Version:      version,
 		SilenceUsage: true,
 	}
-	root.AddCommand(newBuildCmd(), newValidateCmd(), newPlatformsCmd())
+	root.AddCommand(newInitCmd(), newBuildCmd(), newValidateCmd(), newPlatformsCmd())
 	return root
 }
