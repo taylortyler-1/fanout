@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="internal/platform/platforms/claude-code/files/.claude-plugin/icon.png" alt="fanout paper fan" width="160">
+</p>
+
 # fanout
 
 Build Claude Code plugins and Pi packages from the same collection of
@@ -5,10 +9,21 @@ Build Claude Code plugins and Pi packages from the same collection of
 them, copies their files, and adds the manifests each client needs.
 
 ```sh
-fanout build ./my-skills -p all
+brew install taylortyler-1/tap/fanout
+fanout init my-skills
+fanout build my-skills
 ```
 
 ## Install
+
+### Homebrew (macOS and Linux)
+
+```sh
+brew install taylortyler-1/tap/fanout
+```
+
+This installs the binary and bash, zsh, and fish completions. Upgrade with
+`brew upgrade fanout`.
 
 ### Prebuilt binaries — no Go required
 
@@ -29,7 +44,8 @@ Download the archive for your system and `checksums.txt` from
 4. Run `fanout --version` to check the installation.
 
 All platform templates are included in the binary. macOS binaries are not yet
-signed or notarized.
+signed or notarized; if macOS blocks a downloaded binary, run
+`xattr -d com.apple.quarantine fanout` (Homebrew does this for you).
 
 ### From source
 
@@ -44,7 +60,26 @@ Put the built binary on your `PATH` to use the commands below.
 
 ## Quick start
 
-Start with a directory containing one or more skills:
+Create a starter collection:
+
+```sh
+fanout init my-skills
+```
+
+This writes a `fanout.yaml` (using your git name as the author) and an example
+`explain-code` skill. It never overwrites existing files. Edit both, then
+validate and build:
+
+```sh
+fanout validate my-skills
+fanout build my-skills
+```
+
+`build` prints the command to try each output in its client.
+
+### Collection layout
+
+To start from existing skills instead, put them in a directory like this:
 
 ```text
 my-skills/
