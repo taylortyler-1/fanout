@@ -106,6 +106,56 @@ func TestClaudeCodeManifest(t *testing.T) {
 	}
 }
 
+// Claude Code requires author.name (`claude plugin validate` fails with
+// "author.name: expected string" otherwise), so a nameless author is dropped.
+func TestClaudeCodeAuthorRequiresName(t *testing.T) {
+	p, err := platform.Lookup("claude-code")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	meta := Metadata{Name: "demo", Version: "1.0.0", Author: Author{Email: "a@example.com", URL: "https://example.com"}}
+	if err := Build(p, meta, nil, out); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(out, ".claude-plugin", "plugin.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got["author"]; ok {
+		t.Errorf("author without a name must be omitted: %s", b)
+	}
+}
+
+// package.json's author follows npm convention, where name is expected, so a
+// nameless author is dropped (as for Claude Code).
+func TestPiAuthorRequiresName(t *testing.T) {
+	p, err := platform.Lookup("pi")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	meta := Metadata{Name: "demo", Version: "1.0.0", Author: Author{Email: "a@example.com", URL: "https://example.com"}}
+	if err := Build(p, meta, nil, out); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(out, "package.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got["author"]; ok {
+		t.Errorf("author without a name must be omitted: %s", b)
+	}
+}
+
 func TestClaudeCodeIcon(t *testing.T) {
 	p, err := platform.Lookup("claude-code")
 	if err != nil {
