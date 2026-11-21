@@ -156,6 +156,118 @@ func TestPiAuthorRequiresName(t *testing.T) {
 	}
 }
 
+func TestAgentPluginManifest(t *testing.T) {
+	p, err := platform.Lookup("agent-plugin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	build := func(t *testing.T, meta Metadata) (string, map[string]any) {
+		t.Helper()
+		out := t.TempDir()
+		if err := Build(p, meta, []*skill.Skill{testSkill(t)}, out); err != nil {
+			t.Fatal(err)
+		}
+		b, err := os.ReadFile(filepath.Join(out, "plugin.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got map[string]any
+		if err := json.Unmarshal(b, &got); err != nil {
+			t.Fatal(err)
+		}
+		return string(b), got
+	}
+	const schemaURL = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+	// The manifest schema is closed: any other top-level key is a violation.
+	allowed := map[string]bool{
+		"$schema": true, "name": true, "version": true, "description": true, "author": true,
+		"homepage": true, "repository": true, "license": true, "keywords": true, "extensions": true,
+	}
+
+	t.Run("minimal", func(t *testing.T) {
+		raw, got := build(t, Metadata{Name: "demo", Version: "1.0.0"})
+		if len(got) != 3 || got["$schema"] != schemaURL || got["name"] != "demo" || got["version"] != "1.0.0" {
+			t.Errorf("plugin.json = %s", raw)
+		}
+	})
+
+	t.Run("full", func(t *testing.T) {
+		meta := Metadata{
+			Name: "demo", Version: "1.0.0", Description: `A "quoted" plugin`,
+			Author:   Author{Name: "Ann", Email: "a@example.com", URL: "https://example.com"},
+			Homepage: "https://example.com", Repository: "https://github.com/x/y",
+			License: "MIT", Keywords: []string{"a", "b"},
+		}
+		raw, got := build(t, meta)
+		for k := range got {
+			if !allowed[k] {
+				t.Errorf("unknown top-level field %q in %s", k, raw)
+			}
+		}
+		author, _ := got["author"].(map[string]any)
+		if got["$schema"] != schemaURL || got["description"] != meta.Description ||
+			author["name"] != "Ann" || author["email"] != "a@example.com" || author["url"] != "https://example.com" ||
+			got["homepage"] != meta.Homepage || got["repository"] != meta.Repository || got["license"] != "MIT" {
+			t.Errorf("plugin.json = %s", raw)
+		}
+		if kw, _ := got["keywords"].([]any); len(kw) != 2 || kw[0] != "a" || kw[1] != "b" {
+			t.Errorf("keywords = %v", got["keywords"])
+		}
+	})
+
+	t.Run("omits empty fields", func(t *testing.T) {
+		_, got := build(t, Metadata{Name: "demo", Version: "1.0.0"})
+		for _, k := range []string{"description", "author", "homepage", "repository", "license", "keywords"} {
+			if _, ok := got[k]; ok {
+				t.Errorf("empty %s should be omitted", k)
+			}
+		}
+	})
+
+	t.Run("partial author", func(t *testing.T) {
+		const name, email, url = "Ann", "a@example.com", "https://example.com"
+		for _, a := range []Author{
+			{Name: name}, {Email: email}, {URL: url},
+			{Name: name, Email: email}, {Name: name, URL: url}, {Email: email, URL: url},
+			{Name: name, Email: email, URL: url},
+		} {
+			raw, got := build(t, Metadata{Name: "demo", Version: "1.0.0", Author: a})
+			author, ok := got["author"].(map[string]any)
+			if !ok {
+				t.Errorf("author %+v dropped: %s", a, raw)
+				continue
+			}
+			want := map[string]any{}
+			for k, v := range map[string]string{"name": a.Name, "email": a.Email, "url": a.URL} {
+				if v != "" {
+					want[k] = v
+				}
+			}
+			if len(author) != len(want) {
+				t.Errorf("author %+v rendered as %v", a, author)
+			}
+			for k, v := range want {
+				if author[k] != v {
+					t.Errorf("author %+v: %s = %v, want %v", a, k, author[k], v)
+				}
+			}
+		}
+	})
+
+	t.Run("skills location", func(t *testing.T) {
+		out := t.TempDir()
+		if err := Build(p, Metadata{Name: "demo", Version: "1.0.0"}, []*skill.Skill{testSkill(t)}, out); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(filepath.Join(out, "skills", "my-skill", skill.FileName)); err != nil {
+			t.Errorf("skill must be an immediate child of skills/: %v", err)
+		}
+		if _, err := os.Stat(filepath.Join(out, "mcp.json")); err == nil {
+			t.Error("mcp.json is not supported yet")
+		}
+	})
+}
+
 func TestClaudeCodeIcon(t *testing.T) {
 	p, err := platform.Lookup("claude-code")
 	if err != nil {

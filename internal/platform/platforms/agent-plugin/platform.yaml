@@ -1,0 +1,3 @@
+name: agent-plugin
+description: Agent plugin with a plugin manifest
+skillsDir: skills

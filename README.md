@@ -124,6 +124,7 @@ Output is written relative to your current directory:
 
 ```text
 dist/
+  agent-plugin/       # portable plugin.json (https://agent-plugins.org)
   claude-code/        # plugin + single-plugin marketplace + default fan icon
   pi/                 # package.json + explicit Pi skills manifest
 ```
@@ -200,7 +201,7 @@ homepage: https://example.com
 repository: https://github.com/you/my-skills
 license: MIT
 keywords: [docs]
-platforms: [claude-code, pi]   # default: [claude-code]
+platforms: [agent-plugin, claude-code, pi]   # default: [claude-code]
 skills: [explain-code]         # default: all discovered skills
 exclude: [dist, examples]      # default: [dist]
 ```

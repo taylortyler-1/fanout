@@ -24,7 +24,7 @@ description: %s
 author:
   name: %q
 license: MIT
-platforms: [claude-code, pi]
+platforms: [agent-plugin, claude-code, pi]
 `
 
 const skillTemplate = `---
